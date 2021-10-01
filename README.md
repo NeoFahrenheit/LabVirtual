@@ -3,4 +3,5 @@ Um software de apoio ao aprendizado a distância sobre mecânica dos fluídos pa
 
 Dependências externas:
 wxPython
+
 pygame
