@@ -1,0 +1,30 @@
+[
+    {
+        "buttonName": "onMotor",
+        "coordinates": [
+            [
+                0.38,
+                0.8
+            ],
+            [
+                0.18,
+                0.77
+            ]
+        ],
+        "description": "Ligar o motor"
+    },
+    {
+        "buttonName": "offMotor",
+        "coordinates": [
+            [
+                0.38,
+                0.86
+            ],
+            [
+                0.25,
+                0.77
+            ]
+        ],
+        "description": "Desligar o motor"
+    }
+]

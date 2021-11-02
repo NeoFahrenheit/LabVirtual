@@ -4,15 +4,15 @@ Arquivo responsável pela classe de gerenciamento de som.
 sound.py
 """
 
-# Desabilita a mensagem de boas-vinas do pygame.
+# Desabilita a mensagem de boas-vinas do pygame no console.
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 import pygame
 
 class SoundManager():
-    def __init__(self):
-
+    def __init__(self, parent):
+        self.parent = parent
         pygame.init()
         pygame.mixer.init()
         pygame.mixer.set_num_channels(8)
@@ -22,8 +22,6 @@ class SoundManager():
 
         self.pumpSound = pygame.mixer.Sound('sounds/water_pump.wav')
         self.waterSound = pygame.mixer.Sound('sounds/water_flowing.wav')
-
-        self.SoundVolume(1)
 
     def SoundPlayback(self, key, state):
         ''' Toca ou para o som. '''
@@ -45,5 +43,5 @@ class SoundManager():
     def SoundVolume(self, volume):
         ''' Muda o volume. '''
 
-        self.pumpMixer.set_volume(volume / 5)  # Barulho do motor é muito alto.
+        self.pumpMixer.set_volume(volume / 5)   # Barulho do motor é muito alto.
         self.waterMixer.set_volume(volume)

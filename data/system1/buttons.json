@@ -14,7 +14,7 @@
         ],
         "isControllable": true,
         "jsonKey": "abertura",
-        "unit": "[0, 0, 100, 25] %",
+        "unit": "%",
         "description": "Sem descrição"
     },
     {
@@ -45,31 +45,56 @@
             ],
             [
                 0.15,
-                0.52
+                0.49
             ]
         ],
         "isControllable": true,
         "jsonKey": "rpm",
-        "unit": "[0, 50, 90, 10] %",
+        "unit": [
+            [
+                0,
+                0
+            ],
+            [
+                890,
+                50
+            ],
+            [
+                1063,
+                60
+            ],
+            [
+                1239,
+                70
+            ],
+            [
+                1412,
+                80
+            ],
+            [
+                1582,
+                90
+            ]
+        ],
         "description": "Sem descrição"
     },
     {
         "index": 3,
-        "buttonName": "Vacuômetro",
+        "buttonName": "Manovacuômetro",
         "coordinates": [
             [
                 0.69,
                 0.76
             ],
             [
-                0.90,
-                0.485
+                0.9,
+                0.65
             ]
         ],
         "isControllable": false,
         "jsonKey": "p1",
         "unit": "mca",
-        "description": "Vacuômetro"
+        "description": "Manovacuômetro"
     },
     {
         "index": 4,
@@ -80,13 +105,31 @@
                 0.65
             ],
             [
-                0.75,
-                0.20
+                0.68,
+                0.2
             ]
         ],
         "isControllable": false,
         "jsonKey": "p2",
         "unit": "mca",
+        "description": "Manômetro"
+    },
+    {
+        "index": 5,
+        "buttonName": "Piezômetro",
+        "coordinates": [
+            [
+                0.84,
+                0.45
+            ],
+            [
+                0.88,
+                0.1
+            ]
+        ],
+        "isControllable": false,
+        "jsonKey": "piezometro",
+        "unit": "m",
         "description": "Manômetro"
     }
 ]

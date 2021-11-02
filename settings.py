@@ -7,10 +7,11 @@ settings.py
 import os
 import wx, wx.adv
 from wx.core import Colour
+from pubsub import pub
 
 class Settings(wx.Frame):
-    def __init__(self, parent):
-        style = wx.DEFAULT_FRAME_STYLE & (~wx.MAXIMIZE_BOX) & (~wx.RESIZE_BORDER)
+    def __init__(self, parent, onlyLoadToUI=False):
+        style = wx.DEFAULT_FRAME_STYLE & (~wx.MAXIMIZE_BOX) & (~wx.MINIMIZE_BOX) & (~wx.RESIZE_BORDER)
         super().__init__(parent, style=style)
 
         self.SetIcon(wx.Icon('images/icons/settings.png'))
@@ -24,10 +25,10 @@ class Settings(wx.Frame):
         self.initUI()
         self.CenterOnParent()
 
-        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
-
         self.OpenFile()
-        self.applyUserConfig()
+        self.applyUserConfig(onlyLoadToUI)
+
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
     def initUI(self):
         ''' Inicializa a UI. '''
@@ -68,19 +69,22 @@ class Settings(wx.Frame):
         self.getUserConfig()
         self.SaveFile()
         self.CloseFrame()
+        self.parent.bmpImage.Refresh()
 
     def OnCancelButton(self, event):
         ''' Chamada quando o usuário clica no botão de Cancelar. '''
 
-        self.applyUserConfig()
+        self.applyUserConfig(False)
         self.CloseFrame()
 
     def OnResetButton(self, event):
         ''' Chamada quando o usuário clica no botão de Configurão Padrão. '''
 
         self.getDefaultConfig()
-        self.applyUserConfig()
+        self.applyUserConfig(False)
         self.SaveFile()
+
+        pub.sendMessage('OnStatusBar', msg='Configuração restaurada para o padrão com sucesso.')
 
     def OnCloseWindow(self, event):
         ''' Chamada quando o usuário clica no `X` para fechar a janela. '''
@@ -108,28 +112,32 @@ class Settings(wx.Frame):
 
         self.fileLines.clear()
 
+        self.fileLines.append(f"version = {str(self.parent.version)}\n")
         self.fileLines.append("buttonStyle = Borda transparente\n")
         self.fileLines.append("buttonBackgroundColor = Branco\n")
         self.fileLines.append("buttonHoverColor = 14120448\n")
-        self.fileLines.append("tooltipContent = Valor da medição\n")
+        self.fileLines.append("tooltipContent = 1\n")
         self.fileLines.append("initMaximized = 0\n")
         self.fileLines.append("soundActive = 1\n")
-        self.fileLines.append("volume = 25")
+        self.fileLines.append("volume = 25\n")
+        self.fileLines.append("tutorial = 1")
 
     def getUserConfig(self):
         ''' Carrega as configurações atuais para gv.fileLines. '''
 
         self.fileLines.clear()
 
+        self.fileLines.append(f"version = {str(self.parent.version)}\n")
         self.fileLines.append(f"buttonStyle = {self.aparencia.GetStyle()}\n")
         self.fileLines.append(f"buttonBackgroundColor = {self.aparencia.GetBtnBackgroundColor()}\n")
         self.fileLines.append(f"buttonHoverColor = {self.aparencia.GetHoverColor()}\n")
         self.fileLines.append(f"tooltipContent = {self.exibicao.GetTooltipValue()}\n")
         self.fileLines.append(f"initMaximized = {int(self.exibicao.GetMaxCheck())}\n")
         self.fileLines.append(f"soundActive = {int(self.som.GetSomValue())}\n")
-        self.fileLines.append(f"volume = {self.som.GetVolume()}")
+        self.fileLines.append(f"volume = {self.som.GetVolume()}\n")
+        self.fileLines.append(f"tutorial = {int(self.parent.isTutorial)}")
 
-    def applyUserConfig(self):
+    def applyUserConfig(self, onlyLoadToUI):
         ''' Aplica as configurações em self.fileLines. '''
 
         for line in self.fileLines:
@@ -139,47 +147,54 @@ class Settings(wx.Frame):
                 style = line.split('=')[1].strip()
                 if style in ['Borda transparente', 'Cor gradiente', 'Bordas redondas', 'Bordas quadradas']:
                     self.aparencia.SetStyle(style)
-                    self.aparencia.OnStyleChange(None)
+                    if not onlyLoadToUI: self.aparencia.OnStyleChange(None)
 
             elif config == 'buttonBackgroundColor':
                 color = line.split('=')[1].strip()
                 if color in ['Branco', 'Azul']:
                     self.aparencia.SetBtnBackgroundColor(color)
-                    self.aparencia.OnBtnBackgoundChange(None)
+                    if not onlyLoadToUI: self.aparencia.OnBtnBackgoundChange(None)
 
             elif config == 'buttonHoverColor':
                 color = line.split('=')[1].strip()
                 color = self.strToInt(color)
                 if isinstance(color, int) and Colour(color).IsOk():
                     self.aparencia.SetHoverColor(color)
-                    self.parent.updateButtonHoverColor(color)
+                    if not onlyLoadToUI: self.parent.updateButtonHoverColor(color)
 
             elif config == 'tooltipContent':
-                opt = line.split('=')[1].strip()
-                if opt in ['Valor da medição', 'Descrição do item']:
-                    self.exibicao.SetTooltipValue(opt)
-                    self.exibicao.OnTooltipChange(None)
+                value = line.split('=')[1].strip()
+                value = self.strToInt(value)
+                if isinstance(value, int):
+                    self.exibicao.SetTooltipValue(value)
+                    if not onlyLoadToUI: self.exibicao.OnTooltipChange(None)
 
             elif config == 'initMaximized':
                 value = line.split('=')[1].strip()
                 value = self.strToInt(value)
                 if isinstance(value, int):
                     self.exibicao.SetMaxCheck(value)
-                    self.exibicao.OnMaxChange(None)
+                    if not onlyLoadToUI: self.exibicao.OnMaxChange(None)
 
             elif config == 'soundActive':
                 value = line.split('=')[1].strip()
                 value = self.strToInt(value)
                 if isinstance(value, int):
                     self.som.SetSomValue(value)
-                    self.som.OnSomChange(None)
+                    if not onlyLoadToUI: self.som.OnSomChange(None)
 
             elif config == 'volume':
                 value = line.split('=')[1].strip()
                 value = self.strToInt(value)
                 if isinstance(value, int):
                     self.som.SetVolume(value)
-                    self.som.OnVolumeChange(value)
+                    if not onlyLoadToUI: self.som.OnVolumeChange(value)
+
+            elif config == 'tutorial':
+                value = line.split('=')[1].strip()
+                value = self.strToInt(value)
+                if isinstance(value, int):
+                    self.parent.isTutorial = bool(value)
 
     def SaveFile(self):
         ''' Escreve as configurações para o arquivo e o salva. '''
@@ -196,7 +211,7 @@ class Settings(wx.Frame):
         except:
             self.getDefaultConfig()
             self.SaveFile()
-            self.applyUserConfig()
+            self.applyUserConfig(False)
 
 class AparenciaFrame(wx.Panel):
     def __init__(self, noteRef, mainFrameRef):
@@ -220,7 +235,7 @@ class AparenciaFrame(wx.Panel):
 
         text = wx.StaticText(self, -1, 'Estilo', size=textSize)
         choices = ['Borda transparente', 'Cor gradiente', 'Bordas redondas', 'Bordas quadradas']
-        self.styleCombo = wx.ComboBox(self, -1, choices[0], choices=choices, style=wx.CB_READONLY)
+        self.styleCombo = wx.ComboBox(self, -1, choices[0], choices=choices, style=wx.CB_READONLY, size=((131, 23)))
         self.styleCombo.Bind(wx.EVT_COMBOBOX, self.OnStyleChange)
         style.Add(text, flag=wx.TOP, border=3)
         style.Add(self.styleCombo, flag=wx.LEFT, border=5)
@@ -233,7 +248,7 @@ class AparenciaFrame(wx.Panel):
         backgroundColor.Add(self.btnBackgroundColor, flag=wx.LEFT, border=5)
 
         text = wx.StaticText(self, -1, 'Cor da seleção', size=textSize)
-        self.hoverColorPicker = wx.ColourPickerCtrl(self, -1, size=((131, 23)))
+        self.hoverColorPicker = wx.ColourPickerCtrl(self, -1, size=((132, 23)))
         self.hoverColorPicker.Bind(wx.EVT_COLOURPICKER_CHANGED, self.OnColorChange)
         hoverColor.Add(text, flag=wx.TOP, border=3)
         hoverColor.Add(self.hoverColorPicker, flag=wx.LEFT, border=5)
@@ -308,13 +323,11 @@ class ExibicaoFrame(wx.Panel):
         tooltipSizer = wx.BoxSizer(wx.HORIZONTAL)
         startupSizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        text = wx.StaticText(self, -1, 'Conteúdo da tooltip')
-        text.SetToolTip('Tooltip é um pequeno texto que aparece quando o ponteiro do mouse repousa sobre um botão.')
-        choices = ['Valor da medição', 'Descrição do item']
-        self.tooltipCombo = wx.ComboBox(self, -1, choices[0], choices=choices, style=wx.CB_READONLY)
-        self.tooltipCombo.Bind(wx.EVT_COMBOBOX, self.OnTooltipChange)
-        tooltipSizer.Add(text, flag=wx.TOP, border=3)
-        tooltipSizer.Add(self.tooltipCombo, flag=wx.LEFT, border=5)
+        self.tooltipCheck = wx.CheckBox(self, -1)
+        self.tooltipCheck.Bind(wx.EVT_CHECKBOX, self.OnTooltipChange)
+        text = wx.StaticText(self, -1, 'Mostrar o valor dos instrumentos durante o mouse hover no botão')
+        tooltipSizer.Add(self.tooltipCheck)
+        tooltipSizer.Add(text, flag=wx.LEFT, border=5)
 
         self.maxCheck = wx.CheckBox(self, -1)
         self.maxCheck.Bind(wx.EVT_CHECKBOX, self.OnMaxChange)
@@ -328,13 +341,13 @@ class ExibicaoFrame(wx.Panel):
         self.SetSizer(master)
 
     def OnTooltipChange(self, event):
-        ''' Chamada quando o usuário muda o tipo da tooltip. '''
+        ''' Chamada quando o usuário muda o valor da tooltip. '''
 
-        value = self.tooltipCombo.GetValue()
-        if value == 'Valor da medição':
-            self.parent.tooltipContent = 0
+        value = self.tooltipCheck.GetValue()
+        if value:
+            self.parent.isTooltip = True
         else:
-            self.parent.tooltipContent = 1
+            self.parent.isTooltip = False
 
         self.parent.updateButtonTooltips()
 
@@ -347,13 +360,12 @@ class ExibicaoFrame(wx.Panel):
     def GetTooltipValue(self):
         ''' Retorna o valor da wx.ComboBox que pergunta o conteúdo das tooltips.'''
 
-        return self.tooltipCombo.GetValue()
+        return int(self.tooltipCheck.GetValue())
 
     def SetTooltipValue(self, new_value):
-        ''' Seta o valor da wx.ComboBox que pergunta o conteúdo das tooltips.
-        Valores possíveis: `'Descrição do item'`, `'Valor da medição'`. '''
+        ''' Seta o valor da wx.ComboBox que pergunta o conteúdo das tooltips. '''
 
-        self.tooltipCombo.SetValue(new_value)
+        self.tooltipCheck.SetValue(new_value)
 
     def GetMaxCheck(self):
         ''' Retorna o valor da wx.CheckBox que pergunta sobre iniciar o programa maximizado. '''

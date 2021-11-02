@@ -1,0 +1,51 @@
+[
+    {
+        "name": "Registro Esfera",
+        "coordinates": [
+            1100,
+            100
+        ]
+    },
+    {
+        "name": "Medidor de Vazão",
+        "coordinates": [
+            50,
+            100
+        ]
+    },
+    {
+        "name": "Motor Elétrico",
+        "coordinates": [
+            100,
+            100
+        ]
+    },
+    {
+        "name": "Manovacuômetro",
+        "coordinates": [
+            100,
+            150
+        ]
+    },
+    {
+        "name": "Manômetro",
+        "coordinates": [
+            50,
+            750
+        ]
+    },
+    {
+        "name": "Bomba",
+        "coordinates": [
+            100,
+            100
+        ]
+    },
+    {
+        "name": "Piezômetro",
+        "coordinates": [
+            1150,
+            60
+        ]
+    }
+]
