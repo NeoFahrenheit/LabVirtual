@@ -20,7 +20,7 @@ class Settings(wx.Frame):
         self.fileLines = []
 
         self.SetTitle('Configurações')
-        self.SetSize((440, 250))
+        self.SetSize((470, 250))
 
         self.initUI()
         self.CenterOnParent()
@@ -325,7 +325,7 @@ class ExibicaoFrame(wx.Panel):
 
         self.tooltipCheck = wx.CheckBox(self, -1)
         self.tooltipCheck.Bind(wx.EVT_CHECKBOX, self.OnTooltipChange)
-        text = wx.StaticText(self, -1, 'Mostrar o valor dos instrumentos durante o mouse hover no botão')
+        text = wx.StaticText(self, -1, 'Mostrar o valor dos instrumentos quando o ponteiro estiver sobre o botão')
         tooltipSizer.Add(self.tooltipCheck)
         tooltipSizer.Add(text, flag=wx.LEFT, border=5)
 

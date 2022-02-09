@@ -32,7 +32,7 @@ class MainFrame(wx.Panel):
         self.canAcess = []      # Irá conter bools de permissão de acesso as principais funções.
 
         self.index = 0
-        self.version = 0.71
+        self.version = 0.81
 
         self.sound = sound.SoundManager(self)
         self.report = helper.Report(self)
@@ -47,6 +47,9 @@ class MainFrame(wx.Panel):
         self.canShowMotorPanel = False
         self.miscButtons = []
         self.miscButtonsRef = []
+        self.waterFlowBitmaps = []
+        self.greenArrowBitmaps = []
+        self.mascotBitmaps = []
 
         self.settingsWindow = None
         self.aboutWindow = None
@@ -248,17 +251,19 @@ class MainFrame(wx.Panel):
                 rpmCtrl.SetValue('890 (50)')
                 self.widgets[2][1].Show(True)
                 self.updateScrolledVisibility()
+                self.OnValueChanged(self.ctrls[2])
 
         elif name == 'offMotor':
             if not self.canAcess[16]:
                 return
 
             self.canShowMotorPanel = False
-            rpmCtrl.SetValue('0 (0)')
-            self.widgets[2][1].Hide()
-            self.updateScrolledVisibility()
+            if self.getRPMValue() != 0:
+                rpmCtrl.SetValue('0 (0)')
+                self.widgets[2][1].Hide()
+                self.updateScrolledVisibility()
+                self.OnValueChanged(self.ctrls[2])
 
-        self.OnValueChanged(self.ctrls[2])
 
     def updateScrolledVisibility(self):
         ''' Atualiza a visibilidade do self.scrolled. '''
@@ -339,11 +344,17 @@ class MainFrame(wx.Panel):
         return (image_horizontal, image_vertical)
 
     def replaceImage(self, index, path):
-        ''' Substitui a imagem em `index` pela imagem (`path`) na lista `self.images`. '''
+        ''' Substitui a imagem em `index` pela imagem (`path`) na lista `self.images`.
+        Retorna True em caso de sucesso. '''
+
+        if index < 0 or index >= len(self.images):
+            return False
 
         self.images[index] = path
         if not self.isEquipZoom:
             self.frameImage(self.images[self.index])
+
+        return True
 
     def getFirstImagePath(self):
         ''' Retorna o caminho da primeira imagem corresponde ao `self.index = 0`. '''
@@ -391,8 +402,19 @@ class MainFrame(wx.Panel):
 
         pos = self.tutorialObj.pos
         dc = wx.MemoryDC(self.bitmap)
+
+        equip = self.tutorialObj.curEquip
+        if equip:
+            dc.DrawBitmap(wx.Bitmap(self.getWaterFlowBitmap(equip)), 0, 0, True)
+        else:
+            dc.DrawBitmap(self.baseWaterFlowBitmap, 0, 0, True)
+            index = self.tutorialObj.index
+            if index >= 14 and index <= 18:
+                dc.DrawBitmap(wx.Bitmap(self.greenArrowBitmaps[index - 14]), 0, 0, True)
+
         dc.DrawBitmap(self.tutorialBitmap, pos[0], pos[1], True)
         del dc
+
         self.bmpImage.SetBitmap(self.bitmap)
 
     def drawTableImage(self):
@@ -407,6 +429,33 @@ class MainFrame(wx.Panel):
         del dc
         self.bmpImage.SetBitmap(self.bitmap)
 
+    def loadTutorialBitmaps(self):
+        ''' Carrega as imagens para as listas de bitmap. '''
+
+        if len(self.waterFlowBitmaps) > 0:
+            return
+
+        equips = ['Piezômetro', 'Manovacuômetro', 'Motor Elétrico', 'Bomba', 'Manômetro', 'Medidor de Vazão', 'Registro Esfera']
+        for equip in equips:
+            self.waterFlowBitmaps.append( (equip, wx.Bitmap(f'data/system1/misc/overlays/{equip}_overlay.png')) )
+
+        for i in range(0, 5):
+            self.greenArrowBitmaps.append(wx.Bitmap(f'data/system1/misc/overlays/{i + 14}_overlay.png'))
+
+        for i in range(0, 21):
+            self.mascotBitmaps.append( wx.Bitmap(f'images/tutorial/{str(i)}.png') )
+
+        self.baseWaterFlowBitmap = wx.Bitmap('data/system1/misc/overlays/base_overlay.png')
+
+    def getWaterFlowBitmap(self, name):
+        ''' Retorna o wx.Bitmap do equipamento em `name`. Retorna None em caso de erro. '''
+
+        for bitmap in self.waterFlowBitmaps:
+            if bitmap[0] == name:
+                return bitmap[1]
+
+        return None
+
     def getFolderImages(self, path):
         ''' Recebe uma string com o caminho da pasta e retorna uma lista com os paths de todas as imagens da pasta. '''
 
@@ -415,6 +464,14 @@ class MainFrame(wx.Panel):
 
     def OnValueChanged(self, event):
         ''' Chamada quando o valor em qualquer um dos botões é modificado. '''
+
+        if event:
+            if isinstance(event, wx._core.CommandEvent):
+                name = event.GetEventObject().GetName()
+                value = event.GetEventObject().GetValue()
+                # Se "mudar" para o mesmo valor, encerramos.
+                if self.lastStatus[name] == value:
+                    return
 
         values = []
 
@@ -479,7 +536,7 @@ class MainFrame(wx.Panel):
                 self.ctrls[i].SetValue(value)
 
     def getTableCoordinates(self, name):
-        ''' Procura na lista ´self.tables´ e retorna as coordenadas (int, int) para aquela tabela. '''
+        ''' Procura na lista `self.tables` e retorna as coordenadas (int, int) para aquela tabela. '''
 
         for dic in self.tables:
             if name == dic['name']:

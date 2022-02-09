@@ -32,6 +32,7 @@ class MainTutorial():
         self.index = 0
         self.path = 'images/tutorial'
         self.equipList = ['Piezômetro', 'Piezômetro', None, 'Manovacuômetro', 'Motor Elétrico', 'Bomba', 'Manômetro', 'Medidor de Vazão', None, 'Registro Esfera']
+        self.curEquip = None
         self.isTutorialInProgress = False
         self.pos = ()
 
@@ -40,11 +41,7 @@ class MainTutorial():
     def Notify(self, value, buttonPressed=None):
         ''' Recebe uma notificação com os valores (dict / string) do sistema quando algum for modificado. '''
 
-        if self.index == 20:                    # Última imagem do tutorial.
-            self.endTutorial()
-            return
-
-        elif isinstance(value, dict):
+        if isinstance(value, dict):
             if self.parent.getRPMValue() > 0 and self.index == 14:
                 self.index += 1
                 self.parent.ctrls[2].Enable(False)
@@ -58,6 +55,10 @@ class MainTutorial():
         else:                                   # Em sua maioria, eventos da seta do teclado.
             if value == 'right':
                 self.index += 1
+                if self.index > 20:             # Última imagem do tutorial.
+                    self.endTutorial()
+                    return
+
             elif value == 'left':
                 if self.index != 0:
                     self.index -= 1
@@ -67,6 +68,7 @@ class MainTutorial():
     def InitTutorial(self):
         ''' Inicia o tutorial. '''
 
+        self.parent.loadTutorialBitmaps()
         self.isTutorialInProgress = True
         self.parent.isTutorial = True
         self.index = 0
@@ -83,7 +85,7 @@ class MainTutorial():
         ''' Atualiza a imagem e posição em `self.index` no frame principal. '''
 
         if not isJustRepositioning:
-            self.parent.tutorialBitmap = wx.Bitmap(f"{self.path}/{self.index}.png", wx.BITMAP_TYPE_PNG)
+            self.parent.tutorialBitmap = self.parent.mascotBitmaps[self.index]
 
         self.pos = self.data[self.index]['coordinates']
 
@@ -97,6 +99,7 @@ class MainTutorial():
             pub.sendMessage('acessHandler', index=clicks[i], boolValue=True)
 
         self.refreshTutorialImage()
+        self.curEquip = None
 
         # Visão geral, usuário pode avançar e retroceder.
         if self.index in [0, 1, 2, 3, 6, 12, 19, 20]:
@@ -105,7 +108,8 @@ class MainTutorial():
 
         # Zoom em algum equipamento.
         elif self.index in [4, 5, 7, 8, 9, 10, 11, 13]:
-            self.parent.OnEquip(self.equipList[self.index - 4])
+            self.curEquip = self.equipList[self.index - 4]
+            self.parent.OnEquip(self.curEquip)
 
         # Aqui é onde o usuário clica em botões e MODIFICA valores do sistema.
         elif self.index in [14, 15]:

@@ -4,9 +4,17 @@ Arquivo responsável por classes auxiliares criadas pelo frame principal.
 helper.py
 """
 
+import os
 import wx
 import wx.lib.scrolledpanel as scrolled
 import wx.grid as gridlib
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from datetime import datetime
+import copy
+import csv
 
 class ItemFrame(wx.Panel):
     ''' Responsável por criar os itens dos equipamentos no Painel de Controle. '''
@@ -66,6 +74,8 @@ class Report(wx.Frame):
         self.SetTitle('Relatório')
         self.SetSize((810, 400))
         self.parent = parent
+        self.exportWindow = None
+        self.reportList = []
 
         self.initUI()
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
@@ -79,20 +89,34 @@ class Report(wx.Frame):
         self.scrolled = scrolled.ScrolledPanel(self, -1, style=wx.SUNKEN_BORDER)
         self.scrolled.SetSizer(self.scrolledSizer)
         self.scrolled.SetupScrolling(scroll_x=False)
+        self.order = ['Válvula (%)', 'Medidor de Vazão (Q (l/min))', 'Motor Elétrico (RPM (%))',
+        'Manovacuômetro (mca)', 'Manômetro (mca)', 'Piezômetro (m)']
+
+        self.Bind(wx.EVT_CHAR_HOOK, self.OnKey)
+
+    def OnKey(self, event):
+        ''' Chamada quando o usuário aperta qualque tecla. '''
+
+        # Ctrl + R
+        if event.ControlDown() and event.GetKeyCode() == 82:
+            if not self.exportWindow:
+                self.exportWindow = Export(self)
+                self.exportWindow.ShowModal()
 
     def TakeNote(self, before, obj):
         ''' Toma nota de uma modificação. Grava o estado do sistema anterior, o que foi mudado pelo usuário
         e o estado posterior. '''
 
         self.Freeze()
+        dic = {}
 
         listCtrl = wx.ListCtrl(self.scrolled, -1, size=((775, 90)), style=wx.LC_REPORT | wx.SUNKEN_BORDER)
-        listCtrl.InsertColumn(0, 'Válvula (%)')
-        listCtrl.InsertColumn(1, 'Medidor de Vazão (Q (l/min))')
-        listCtrl.InsertColumn(2, 'Motor Elétrico (RPM (%))')
-        listCtrl.InsertColumn(3, 'Manovacuômetro (mca)')
-        listCtrl.InsertColumn(4, 'Manômetro (mca)')
-        listCtrl.InsertColumn(5, 'Piezômetro (m)')
+        listCtrl.InsertColumn(0, self.order[0])
+        listCtrl.InsertColumn(1, self.order[1])
+        listCtrl.InsertColumn(2, self.order[2])
+        listCtrl.InsertColumn(3, self.order[3])
+        listCtrl.InsertColumn(4, self.order[4])
+        listCtrl.InsertColumn(5, self.order[5])
 
         listCtrl.SetColumnWidth(1, 170)
         listCtrl.SetColumnWidth(2, 145)
@@ -107,28 +131,38 @@ class Report(wx.Frame):
         listCtrl.SetItem(0, 3, before['p1'])
         listCtrl.SetItem(0, 4, before['p2'])
         listCtrl.SetItem(0, 5, before['piezometro'])
+        dic['before'] = copy.deepcopy(before)
 
         # Pegando as informações do controle que mudou.
         listCtrl.InsertItem(1, '')
         listCtrl.SetItemBackgroundColour(1, '#83de9b')
+        value = obj.GetValue()
         if obj.GetName() == 'abertura':
-            listCtrl.SetItem(1, 0, obj.GetValue())
+            listCtrl.SetItem(1, 0, value)
+            dic['changed'] = {'abertura': value}
         else:
-            listCtrl.SetItem(1, 2, obj.GetValue())
+            listCtrl.SetItem(1, 2, value)
+            dic['changed'] = {'rpm': value}
 
         # Pegando as informações depois da mudança.
+        after = {}
         listCtrl.InsertItem(2, '')
         for i in range(0, len(self.parent.ctrls)):
-            listCtrl.SetItem(2, i, self.parent.ctrls[i].GetValue())
+            value = self.parent.ctrls[i].GetValue()
+            listCtrl.SetItem(2, i, value)
+            after[self.parent.ctrls[i].GetName()] = value
 
+        dic['after'] = copy.deepcopy(after)
         self.scrolledSizer.Add(listCtrl, flag=wx.ALL, border=5)
         self.scrolled.SendSizeEvent()
+        self.reportList.append(dic)
         self.Thaw()
 
     def ClearScrolled(self):
         ''' Limpa o `self.scrolled`. '''
 
         self.scrolled.DestroyChildren()
+        self.reportList.clear()
         self.scrolled.SendSizeEvent()
 
     def OnCloseWindow(self, event):
@@ -205,4 +239,175 @@ class BombCurve(wx.Dialog):
         ''' Chamada quando o usuário fecha a janela. '''
 
         self.parent.pumpCurve = None
+        self.Destroy()
+
+
+class Export(wx.Dialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.parent = parent
+        self.reportList = self.parent.reportList
+        self.order = parent.order
+        # self.password = 'lamiph@2021!'
+        self.SetTitle('Exportar relatório')
+        self.SetIcon(wx.Icon('images/icons/app_logo.ico'))
+
+        self.initUI()
+        self.SetFocus()
+        self.Center()
+
+        self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
+
+    def initUI(self):
+        ''' Inicializa a UI. '''
+
+        master = wx.BoxSizer(wx.VERTICAL)
+        extension = wx.BoxSizer(wx.HORIZONTAL)
+        password = wx.BoxSizer(wx.HORIZONTAL)
+
+        choices = ['PDF .pdf', 'Tabela .csv']
+        self.combo = wx.ComboBox(self, -1, choices[0], size=((110, 23)), style=wx.CB_READONLY, choices=choices)
+        extension.Add( wx.StaticText(self, -1, 'Formato:', size=(50, 23)), flag=wx.TOP, border=2 )
+        extension.Add(self.combo, flag=wx.LEFT, border=5)
+
+        # password.Add( wx.StaticText(self, -1, 'Senha: ', size=(50, 23)), flag=wx.TOP, border=2 )
+        # self.passCtrl = wx.TextCtrl(self, -1, size=((110, 23)), style=wx.TE_PASSWORD | wx.TE_PROCESS_ENTER)
+        # password.Add(self.passCtrl, flag=wx.LEFT, border=5)
+
+        self.expBtn = wx.Button(self, -1, 'Exportar')
+        self.expBtn.Bind(wx.EVT_BUTTON, self.OnExport)
+        # self.passCtrl.Bind(wx.EVT_TEXT_ENTER, self.OnExport)
+
+        master.Add(extension, flag=wx.ALL, border=5)
+        # master.Add(password, flag=wx.ALL, border=5)
+        master.Add(self.expBtn, flag=wx.ALL | wx.ALIGN_CENTER, border=5)
+
+        self.SetSizerAndFit(master)
+
+    def OnExport(self, event):
+        ''' Chamada quando o botão `Exportar` é clicado. '''
+
+        if len(self.reportList) == 0:
+            wx.MessageBox('O relatório está vazio. Modifique alguns parâmetros para exportar.', 'Relatório vazio', wx.OK | wx.ICON_INFORMATION)
+            return
+
+        # # Não é importante que esta função fique super protegida.
+        # if not self.passCtrl.GetValue() == self.password:
+        #     wx.MessageBox('Senha incorreta.', 'Erro', wx.OK | wx.ICON_ERROR)
+        #     return
+
+        choice = self.combo.GetValue().split()[0]
+        if choice == 'PDF':
+            func = self.writePDF
+            suffix = '.pdf'
+        else:
+            func = self.writeCSV
+            suffix = '.csv'
+
+        dialog = wx.FileDialog(self, f"Escolha um nome para o arquivo", '', '', f'*{suffix}', wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if dialog.ShowModal() == wx.ID_OK:
+            filename = dialog.GetFilename()
+            filename = self.putFileSuffix(filename, suffix)
+            file_dir = dialog.GetDirectory()
+            file_path = os.path.join(file_dir, filename)
+            func(file_path)
+            wx.MessageBox(f'Arquivo {filename} salvo com sucesso.', 'Sucesso', wx.OK | wx.ICON_INFORMATION)
+
+    def writeCSV(self, filepath):
+        ''' Exporta o relatório como .csv. '''
+
+        with open(filepath, 'w', encoding='utf-8', newline='') as f:
+            writerObj = csv.writer(f, delimiter=',')
+            head = self.order[:]
+            head.insert(0, 'Situação')
+            writerObj.writerow(head)
+
+            for state in self.reportList:
+                before = [value for value in state['before'].values()]
+                before.insert(0, 'Antes')
+                writerObj.writerow(before)
+
+                if 'abertura' in state['changed']:
+                    writerObj.writerow(['Alteração', state['changed']['abertura'], '', '', '', '', ''])
+                else:
+                    writerObj.writerow(['Alteração', '', '', state['changed']['rpm'], '', '', ''])
+
+                after = [value for value in state['after'].values()]
+                after.insert(0, 'Depois')
+                writerObj.writerow(after)
+                writerObj.writerow('')
+
+            now = datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
+            writerObj.writerow(['Obtido em:', now])
+
+    def writePDF(self, filepath):
+        ''' Exporta o relatório como .pdf. '''
+
+        flowables = []
+        styles = getSampleStyleSheet()
+        spacer = Spacer(1, 0.25 * inch)
+        image = Image('images/lab_logo.png', width=45, height=92)
+
+        titleStyle = ParagraphStyle('yourtitle', fontName="Helvetica-Bold", fontSize=12,
+        parent=styles['Heading1'], alignment=1, spaceAfter=8)
+
+        flowables.append(image)
+        flowables.append(spacer)
+        flowables.append(Paragraph("Laboratório Virtual - Relatório de Uso", titleStyle))
+
+        head = self.order[:]
+        head.insert(0, 'Situação')
+
+        for state in self.reportList:
+            before = [value for value in state['before'].values()]
+            before.insert(0, 'Antes')
+
+            if 'abertura' in state['changed']:
+                changed = ['Alteração', state['changed']['abertura'], '', '', '', '', '']
+            else:
+                changed = ['Alteração', '', '', state['changed']['rpm'], '', '', '']
+
+            after = [value for value in state['after'].values()]
+            after.insert(0, 'Depois')
+
+            data = [head, before, changed, after]
+
+            tblstyle = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), '#c2c2c2'),
+                ('BACKGROUND', (0, 1), (-1, 1), '#f0f0f0'),
+                ('BACKGROUND', (0, 2), (-1, 2), '#83de9b'),
+                ('BACKGROUND', (0, 3), (-1, 3), '#f0f0f0'),
+                ('FONTSIZE', (0, 0), (-1, -1), 5)])
+
+            tbl = Table(data)
+            tbl.setStyle(tblstyle)
+            flowables.append(tbl)
+            flowables.append(spacer)
+
+
+        now = datetime.now().strftime("Dados obtidos em %d/%m/%Y às %H:%M:%S")
+        p = Paragraph(now, styles['Normal'])
+        flowables.append(p)
+
+        ### ------------------ ###
+
+        doc = SimpleDocTemplate(filepath, pagesize=A4)
+        doc.build(flowables)
+
+    def putFileSuffix(self, filename, suffix):
+        ''' Verifica se filename ja possui o sufixo informado. Se nao, adiciona e retorna filename modificado.'''
+
+        size = len(suffix)
+        fileSuffix =  filename[-size:].lower()
+
+        if fileSuffix == suffix:
+            return filename
+        else:
+            return filename + suffix
+
+    def OnCloseWindow(self, event):
+        ''' Chamada quando a janela é fechada. '''
+
+        self.parent.exportWindow = None
         self.Destroy()

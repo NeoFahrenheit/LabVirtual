@@ -33,6 +33,7 @@ class About(wx.Dialog):
         pyVer = wx.StaticText(self, -1, 'Python: 3.9.2')
         wxVer = wx.StaticText(self, -1, 'wxPython: 4.1.1 msw (phoenix)')
         self.rtc = rt.RichTextCtrl(self, -1, size=(300, 150), style=wx.TE_READONLY)
+        self.rtc.GetCaret().Hide()
         self.rtc.Bind(wx.EVT_TEXT_URL, self.OnURL)
 
         self.rtc.WriteText('Este projeto foi desenvolvido no âmbito da ')
@@ -40,7 +41,6 @@ class About(wx.Dialog):
         self.rtc.WriteText('.')
         self.rtc.Newline()
         self.rtc.Newline()
-
 
         self.writeInBold('Programador:')
         self.rtc.Newline()
@@ -72,6 +72,8 @@ class About(wx.Dialog):
         self.writeInURL('https://www.flaticon.com/authors/freepik', 'freepik')
         self.writeInURL('https://www.flaticon.com/authors/icongeek26', 'icongeek26')
         self.writeInURL('https://www.flaticon.com/authors/vitaly-gorbachev', 'vitaly-gorbachev')
+        self.writeInURL('https://www.iconfinder.com/encoderxsolutions', 'encoderxsolutions')
+        self.writeInURL('https://www.iconfinder.com/mystockicons', 'mystockicons')
 
         master.Add(logo, flag=wx.ALL | wx.ALIGN_CENTER, border=10)
         master.Add(name, flag=wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, border=10)
