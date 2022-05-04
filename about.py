@@ -36,35 +36,44 @@ class About(wx.Dialog):
         self.rtc.GetCaret().Hide()
         self.rtc.Bind(wx.EVT_TEXT_URL, self.OnURL)
 
-        self.rtc.WriteText('Este projeto foi desenvolvido no âmbito da ')
+        self.rtc.WriteText('Este projeto foi desenvolvido no âmbito do Edital UFRGS EaD 28 (')
         self.writeInURL('http://www.ufrgs.br/sead', 'SEAD/UFRGS', False)
-        self.rtc.WriteText('.')
-        self.rtc.Newline()
-        self.rtc.Newline()
-
-        self.writeInBold('Programador:')
-        self.rtc.Newline()
-        self.rtc.AppendText('Leandro Monteiro')
+        self.rtc.WriteText(').')
         self.rtc.Newline()
         self.rtc.Newline()
 
         self.writeInBold('Equipe:')
         self.rtc.Newline()
-        self.rtc.AppendText('Mauricio Dai Prá')
+        self.rtc.AppendText('Leandro Arruda Monteiro (Programador)')
         self.rtc.Newline()
-        self.rtc.AppendText('Marcos Trindade')
+        self.rtc.AppendText('Mauricio Dai Prá (Autor/Orientador)')
         self.rtc.Newline()
-        self.rtc.AppendText('Pedro Guido Bassegio')
+        self.rtc.AppendText('Luiz Augusto Magalhães Endres (Autor/Revisor)')
         self.rtc.Newline()
-        self.rtc.AppendText('Guilherme Castiglio')
+        self.rtc.AppendText('Marcos Vinícius Fernandes Trindade (Diagramador)')
         self.rtc.Newline()
-        self.rtc.AppendText('Gustavo Diefenbach')
+        self.rtc.AppendText('Pedro Guido Mottes Bassegio (Autor)')
+        self.rtc.Newline()
+        self.rtc.AppendText('Guilherme Santanna Castiglio (Autor)')
+        self.rtc.Newline()
+        self.rtc.AppendText('Gustavo Diefenbach (Ilustrador)')
+        self.rtc.Newline()
+        self.rtc.Newline()
+
+        self.writeInBold('Link de acesso:')
+        self.rtc.Newline()
+        self.rtc.AppendText('Laboratório de Obras Hidráulicas: ')
+        self.writeInURL('http://www.ufrgs.br/loh', 'LOH')
+        self.rtc.Newline()
+
+        self.writeInBold('Email do LENHS:')
+        self.rtc.Newline()
+        self.writeBlueUnderlined('lenhs-iph@ufrgs.br')
         self.rtc.Newline()
         self.rtc.Newline()
 
         self.writeInBold('Ícones:')
         self.rtc.Newline()
-
         self.writeInURL('https://www.flaticon.com/authors/roundicons', 'roundicons')
         self.writeInURL('https://www.flaticon.com/authors/alfredo-hernandez', 'alfredo-hernandez')
         self.writeInURL('https://www.flaticon.com/authors/good-ware', 'good-ware')
@@ -74,6 +83,14 @@ class About(wx.Dialog):
         self.writeInURL('https://www.flaticon.com/authors/vitaly-gorbachev', 'vitaly-gorbachev')
         self.writeInURL('https://www.iconfinder.com/encoderxsolutions', 'encoderxsolutions')
         self.writeInURL('https://www.iconfinder.com/mystockicons', 'mystockicons')
+
+        self.rtc.Newline()
+        self.rtc.BeginAlignment(wx.TEXT_ALIGNMENT_CENTER)
+        self.rtc.WriteImage(wx.Bitmap('images/lab_logo_50.png'))
+        self.rtc.Newline()
+
+        self.rtc.AppendText('Laboratório de Eficiência Energética e Hidráulica no Saneamento')
+
 
         master.Add(logo, flag=wx.ALL | wx.ALIGN_CENTER, border=10)
         master.Add(name, flag=wx.LEFT | wx.RIGHT | wx.TOP | wx.ALIGN_CENTER, border=10)
@@ -98,7 +115,7 @@ class About(wx.Dialog):
         self.rtc.BeginUnderline()
         self.rtc.BeginURL(url)
         self.rtc.WriteText(text)
-        if appendNewLine: self.rtc.Newline()
+        if appendNewLine: self.rtc.AppendText('')
 
         self.rtc.EndTextColour()
         self.rtc.EndUnderline()
@@ -108,6 +125,17 @@ class About(wx.Dialog):
         ''' Chamada quando algum link é clicado. Abre o link no browser padrão da máquina. '''
 
         webbrowser.open_new(event.GetString())
+
+    def writeBlueUnderlined(self, text):
+        ''' Escreve `text` em azul com sublinhado. '''
+
+        self.rtc.BeginTextColour(wx.BLUE)
+        self.rtc.BeginUnderline()
+
+        self.rtc.WriteText(text)
+
+        self.rtc.EndTextColour()
+        self.rtc.EndUnderline()
 
     def OnCloseWindow(self, event):
         ''' Fecha a janela. '''

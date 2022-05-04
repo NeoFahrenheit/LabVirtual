@@ -32,7 +32,7 @@ class MainFrame(wx.Panel):
         self.canAcess = []      # Irá conter bools de permissão de acesso as principais funções.
 
         self.index = 0
-        self.version = 0.81
+        self.version = 1.0
 
         self.sound = sound.SoundManager(self)
         self.report = helper.Report(self)
