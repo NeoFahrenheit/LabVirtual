@@ -8,6 +8,7 @@ O app deve ser rodado a partir de *main_frame.py*
 **Dependências externas:**</br>
 wxPython</br>
 pygame</br>
+ReportLab</br>
 
 ![lab_1](https://user-images.githubusercontent.com/16950058/139777027-0d1f994a-3f7a-4cbc-b00a-f15f70050f6a.JPG)
 ![lab_2](https://user-images.githubusercontent.com/16950058/139777030-d936d1a1-cb9d-48e8-a23b-a13574814920.JPG)
